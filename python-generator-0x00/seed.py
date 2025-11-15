@@ -38,7 +38,7 @@ def connect_db():
                 continue
         
         # If common passwords don't work, ask user
-        print(" Could not connect with common passwords.")
+        print("❌ Could not connect with common passwords.")
         user_password = getpass.getpass("🔐 Enter your MySQL root password: ")
         
         connection = mysql.connector.connect(
