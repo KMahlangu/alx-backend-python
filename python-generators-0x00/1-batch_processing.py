@@ -3,88 +3,74 @@
 Batch Processing Large Data
 Generator that fetches and processes data in batches
 """
-import sys
 import pymysql
 
 def stream_users_in_batches(batch_size):
     """
     Generator that fetches rows from database in batches
     
-    Args:
-        batch_size (int): Number of rows to fetch per batch
-    
-    Yields:
-        list: A batch of user dictionaries
+    Returns:
+        int: Total number of batches processed
     """
-    try:
-        # Connect to database
-        conn = pymysql.connect(
-            host='localhost',
-            user='root',
-            password='#Thando@2019',
-            database='ALX_prodev'
-        )
-        cursor = conn.cursor()
+    conn = pymysql.connect(
+        host='localhost',
+        user='root',
+        password='#Thando@2019',
+        database='ALX_prodev',
+        cursorclass=pymysql.cursors.DictCursor  # This returns dictionaries directly
+    )
+    cursor = conn.cursor()
+    
+    offset = 0
+    batch_count = 0
+    
+    # LOOP 1: Batch fetching loop
+    while True:
+        cursor.execute("SELECT user_id, name, email, age FROM user_data LIMIT %s OFFSET %s", 
+                      (batch_size, offset))
+        rows = cursor.fetchall()
         
-        # Get total count for progress (optional)
-        cursor.execute("SELECT COUNT(*) FROM user_data")
-        total_users = cursor.fetchone()[0]
-        print(f"Processing {total_users} users in batches of {batch_size}", file=sys.stderr)
+        if not rows:
+            cursor.close()
+            conn.close()
+            return batch_count  # Return total batch count
         
-        offset = 0
+        # With pymysql DictCursor, rows are already dictionaries!
+        # No need to convert manually
+        yield rows  # Yield the batch of dictionaries directly
         
-        # LOOP 1: Batch fetching loop
-        while True:
-            # Fetch one batch from database
-            query = f"SELECT user_id, name, email, age FROM user_data LIMIT {batch_size} OFFSET {offset}"
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            
-            if not rows:  # No more data
-                break
-            
-            # Convert batch to list of dictionaries
-            batch = []
-            for row in rows:  # LOOP 2: Within batch processing
-                user_dict = {
-                    'user_id': row[0],
-                    'name': row[1],
-                    'email': row[2],
-                    'age': row[3]
-                }
-                batch.append(user_dict)
-            
-            # Yield the entire batch
-            yield batch
-            offset += batch_size
-        
-        cursor.close()
-        conn.close()
-        
-    except pymysql.Error as e:
-        print(f"Database error: {e}", file=sys.stderr)
+        offset += batch_size
+        batch_count += 1
 
 def batch_processing(batch_size):
     """
     Processes batches to filter users over age 25
     
-    Args:
-        batch_size (int): Number of rows to process per batch
+    Returns:
+        dict: Processing statistics
     """
-    import sys
+    stats = {
+        'total_processed': 0,
+        'total_filtered': 0,
+        'batch_size': batch_size
+    }
     
-    # Get the batch generator
-    batches_gen = stream_users_in_batches(batch_size)
-    
-    # LOOP 3: Process each batch
-    for batch in batches_gen:
-        # Filter users over age 25 in this batch
-        filtered_users = [user for user in batch if user['age'] > 25]  # This is a comprehension, not a loop
+    # Get batches from generator
+    for batch in stream_users_in_batches(batch_size):  # LOOP 3: Process batches
+        stats['total_processed'] += len(batch)
         
-        # Output filtered users
-        for user in filtered_users:
-            print(user)
-
+        # Filter and print users over 25
+        for user in batch:  # Each user is already a dictionary
+            if user['age'] > 25:
+                print(user)
+                stats['total_filtered'] += 1
+    
+    return stats  # Return processing statistics
 if __name__ == "__main__":
-    BATCH_SIZE = 100  # Define batch size
-    batch_processing(BATCH_SIZE)
+    batch_size = 14
+    stats = batch_processing(batch_size)
+    
+    print("\nBatch Processing Complete!")
+    print(f"Total Records Processed: {stats['total_processed']}")
+    print(f"Total Records Filtered (age > 25): {stats['total_filtered']}")
+    print(f"Batch Size: {stats['total_processed']}")
