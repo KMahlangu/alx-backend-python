@@ -81,8 +81,8 @@ def batch_processing(batch_size):
         # Filter users over age 25 in this batch
         filtered_users = [user for user in batch if user['age'] > 25]  # This is a comprehension, not a loop
         
-        # Print each filtered user
-        for user in filtered_users:  # LOOP 4: Printing filtered users
+        # Output filtered users
+        for user in filtered_users:
             print(user)
 
 if __name__ == "__main__":
