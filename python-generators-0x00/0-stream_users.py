@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import pymysql
+import pymysql.cursors
 
 def stream_users():
     """Generator that streams rows from the user_data table one by one."""
@@ -28,6 +29,9 @@ def main():
         
     print("\nThis approach allows processing large datasets ")
     print("   one record at a time, ")
+
+if __name__ == "__main__":
+    main()
 
 
 
